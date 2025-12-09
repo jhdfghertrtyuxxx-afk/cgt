@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Cambridge Gambling Task（CGT）</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1b2838;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+    }
+    #container {
+      background: #f4f6f7;
+      margin-top: 40px;
+      margin-bottom: 40px;
+      padding: 24px 32px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      max-width: 900px;
+      width: 100%;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+    #statusBar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+    #message {
+      margin: 10px 0;
+      min-height: 40px;
+      font-size: 15px;
+      color: #2c3e50;
+    }
+    #boxes {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin: 20px 0;
+    }
+    .box {
+      width: 34px;
+      height: 34px;
+      border-radius: 4px;
+      border: 1px solid #bdc3c7;
+    }
+    .redBox  { background: #e74c3c; }
+    .blueBox { background: #3498db; }
+
+    #controls {
+      text-align: center;
+      margin-top: 10px;
+    }
+    button {
+      padding: 10px 18px;
+      margin: 4px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.2s ease;
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+    .primary {
+      background: #3498db;
+      color: #fff;
+      box-shadow: 0 3px 6px rgba(52,152,219,0.5);
+    }
+    .danger {
+      background: #e74c3c;
+      color: #fff;
+      box-shadow: 0 3px 6px rgba(231,76,60,0.5);
+    }
+    .secondary {
+      background: #7f8c8d;
+      color: #fff;
+      box-shadow: 0 3px 6px rgba(127,140,141,0.5);
+    }
+
+    /* 红蓝选择：左右大按键 */
+    #colorButtons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    .choiceBtn {
+      flex: 1;
+      padding: 16px 10px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 10px;
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    }
+    .choiceBtnRed {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
+    .choiceBtnBlue {
+      background: linear-gradient(135deg, #3498db, #21618c);
+    }
+
+    /* 圆形下注显示区域 */
+    #betCircle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px auto;
+      font-size: 32px;
+      font-weight: bold;
+      color: #2c3e50;
+      background: #ecf0f1;
+      border: 6px solid #95a5a6;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+
+    /* 下注时的小动画 */
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+    .pulse {
+      animation: pulse 0.35s ease;
+    }
+
+    #betButtons {
+      margin-top: 6px;
+    }
+
+    #downloadBtn {
+      margin-top: 20px;
+    }
+    #instructions {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #34495e;
+      background: #ecf0f1;
+      padding: 10px 14px;
+      border-radius: 8px;
+    }
+    #startBtn {
+      display: block;
+      margin: 20px auto 0;
+    }
+  </style>
+</head>
+<body>
+<div id="container">
+  <h1>Cambridge Gambling Task（CGT）</h1>
+
+  <div id="statusBar">
+    <div>Block：<span id="blockInfo">-</span></div>
+    <div>Trial：<span id="trialInfo">-</span>/40</div>
+    <div>点数：<span id="pointsInfo">-</span></div>
+  </div>
+
+  <div id="instructions">
+    <p><b>任务说明：</b></p>
+    <ol>
+      <li>每轮顶部出现 10 个方块（红/蓝），其中一格下藏有黄色小球（你看不见）。</li>
+      <li>你判断小球更可能藏在<b>红色还是蓝色</b>下面，点击下方对应的红/蓝大按键。</li>
+      <li>然后从当前点数中<b>下注一定比例</b>。下注比例会在中间的圆形中自动轮换（5%、25%、50%、75%、95%），看到想要的比例时点击“在当前比例下注”。</li>
+      <li>若判断正确，则赢得该比例的点数；若判断错误，则失去该比例的点数。</li>
+      <li>目标：在 40 轮结束时，让<b>总点数尽量多</b>。</li>
+    </ol>
+    <p>共有 2 个 block：Block 1 下注比例按 5→25→50→75→95 升序轮换，Block 2 按 95→75→50→25→5 降序轮换。</p>
+  </div>
+
+  <button id="startBtn" class="primary">开始任务</button>
+
+  <div id="message"></div>
+  <div id="boxes"></div>
+
+  <!-- 圆形下注显示 -->
+  <div id="betCircle"></div>
+
+  <div id="controls">
+    <div id="colorButtons" style="display:none;">
+      <button id="chooseRed" class="choiceBtn choiceBtnRed">选红色</button>
+      <button id="chooseBlue" class="choiceBtn choiceBtnBlue">选蓝色</button>
+    </div>
+    <div id="betButtons" style="display:none;">
+      <button id="confirmBet" class="primary">在当前比例下注</button>
+    </div>
+  </div>
+
+  <button id="downloadBtn" style="display:none;" class="secondary">下载 CSV 数据</button>
+</div>
+
+<script>
+  const START_POINTS = 100;
+  const TOTAL_BLOCKS = 2;
+  const TRIALS_PER_BLOCK = 20;
+  const TOTAL_TRIALS = TOTAL_BLOCKS * TRIALS_PER_BLOCK;
+
+  const ratioList = [
+    {red:9, blue:1},
+    {red:8, blue:2},
+    {red:7, blue:3},
+    {red:6, blue:4},
+    {red:5, blue:5}
+  ];
+  const betAsc  = [5, 25, 50, 75, 95];
+  const betDesc = [95, 75, 50, 25, 5];
+
+  let trials = [];
+  let currentTrialIndex = -1;
+  let currentPoints = START_POINTS;
+  let currentTrial = null;
+  let phase = "instructions";
+  let betTimer = null;
+  let betIndex = 0;
+  let dataRows = [];
+
+  const blockInfoSpan = document.getElementById('blockInfo');
+  const trialInfoSpan = document.getElementById('trialInfo');
+  const pointsInfoSpan = document.getElementById('pointsInfo');
+  const messageDiv = document.getElementById('message');
+  const boxesDiv = document.getElementById('boxes');
+  const betCircleDiv = document.getElementById('betCircle');
+  const startBtn = document.getElementById('startBtn');
+  const colorButtonsDiv = document.getElementById('colorButtons');
+  const chooseRedBtn = document.getElementById('chooseRed');
+  const chooseBlueBtn = document.getElementById('chooseBlue');
+  const betButtonsDiv = document.getElementById('betButtons');
+  const confirmBetBtn = document.getElementById('confirmBet');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  const now = () => performance.now();
+
+  function generateTrials() {
+    const trialsArr = [];
+    let counter = 1;
+    for (let block = 1; block <= TOTAL_BLOCKS; block++) {
+      let blockRatios = [];
+      ratioList.forEach(r => {
+        for (let i = 0; i < 4; i++) blockRatios.push({red:r.red, blue:r.blue});
+      });
+      blockRatios = shuffle(blockRatios);
+      const betOrder = (block === 1) ? "ascending" : "descending";
+
+      blockRatios.forEach((rb, idx) => {
+        const t = {
+          globalTrial: counter,
+          block: block,
+          trialInBlock: idx + 1,
+          ratioRed: rb.red,
+          ratioBlue: rb.blue,
+          betOrder: betOrder,
+          majorityColor: rb.red > rb.blue ? "red" : rb.blue > rb.red ? "blue" : "none",
+          tokenColor: null,
+          chosenColor: null,
+          colorRT: null,
+          betPercent: null,
+          betRT: null,
+          correct: null,
+          wonLoss: null,
+          pointsAfter: null
+        };
+        trialsArr.push(t);
+        counter++;
+      });
+    }
+    return trialsArr;
+  }
+
+  function updateStatusBar() {
+    if (!currentTrial) {
+      blockInfoSpan.textContent = "-";
+      trialInfoSpan.textContent = "-";
+      pointsInfoSpan.textContent = "-";
+      return;
+    }
+    blockInfoSpan.textContent = currentTrial.block + " / " + TOTAL_BLOCKS;
+    trialInfoSpan.textContent = currentTrial.globalTrial + " / " + TOTAL_TRIALS;
+    pointsInfoSpan.textContent = currentPoints;
+  }
+
+  function renderBoxes() {
+    boxesDiv.innerHTML = "";
+    if (!currentTrial) return;
+    let colors = [];
+    for (let i=0; i<currentTrial.ratioRed; i++) colors.push("red");
+    for (let i=0; i<currentTrial.ratioBlue; i++) colors.push("blue");
+    colors = shuffle(colors);
+    colors.forEach(c => {
+      const div = document.createElement('div');
+      div.classList.add('box');
+      div.classList.add(c === "red" ? 'redBox' : 'blueBox');
+      boxesDiv.appendChild(div);
+    });
+  }
+
+  // 根据下注比例调整圆形颜色（越高越“危险”）
+  function setBetCircleVisual(percent) {
+    betCircleDiv.textContent = percent + "%";
+    const t = (percent - 5) / (95 - 5); // 0~1
+    // 用 HSL 做一个从蓝灰 -> 橙 -> 红 的过渡
+    const hue = 210 - 120 * t;        // 210(蓝) -> 90(橙)
+    const sat = 40 + 25 * t;          // 40% -> 65%
+    const lightBg = 92 - 20 * t;      // 背景亮度从 92 -> 72
+    const lightBorder = 60 - 20 * t;  // 边框亮度从 60 -> 40
+
+    betCircleDiv.style.backgroundColor = `hsl(${hue}, ${sat}%, ${lightBg}%)`;
+    betCircleDiv.style.borderColor = `hsl(${hue}, ${sat + 5}%, ${lightBorder}%)`;
+    betCircleDiv.style.color = t > 0.6 ? "#fff" : "#2c3e50";
+  }
+
+  function nextTrial() {
+    clearBetTimer();
+    betCircleDiv.textContent = "";
+    currentTrialIndex++;
+    if (currentTrialIndex >= trials.length) {
+      endTask();
+      return;
+    }
+    currentTrial = trials[currentTrialIndex];
+    phase = "color";
+
+    let pool = [];
+    for (let i=0;i<currentTrial.ratioRed;i++) pool.push("red");
+    for (let i=0;i<currentTrial.ratioBlue;i++) pool.push("blue");
+    currentTrial.tokenColor = pool[Math.floor(Math.random()*pool.length)];
+    currentTrial.colorStartTime = now();
+
+    updateStatusBar();
+    renderBoxes();
+
+    messageDiv.textContent = "第 " + currentTrial.globalTrial + " 轮：请选择你认为小球更可能在红色还是蓝色下面。";
+    colorButtonsDiv.style.display = "flex";
+    betButtonsDiv.style.display = "none";
+  }
+
+  function handleColorChoice(color) {
+    if (phase !== "color") return;
+    phase = "bet";
+    currentTrial.chosenColor = color;
+    currentTrial.colorRT = now() - currentTrial.colorStartTime;
+
+    messageDiv.textContent = "现在选择下注比例：看到想要的比例时点击“在当前比例下注”。";
+    colorButtonsDiv.style.display = "none";
+    betButtonsDiv.style.display = "block";
+    startBetCycle();
+  }
+
+  function startBetCycle() {
+    clearBetTimer();
+    const opts = currentTrial.betOrder === "ascending" ? betAsc : betDesc;
+    betIndex = 0;
+    currentTrial.betStartTime = now();
+    setBetCircleVisual(opts[betIndex]);
+
+    betTimer = setInterval(() => {
+      betIndex = (betIndex + 1) % opts.length;
+      setBetCircleVisual(opts[betIndex]);
+    }, 1000);
+  }
+
+  function clearBetTimer() {
+    if (betTimer) {
+      clearInterval(betTimer);
+      betTimer = null;
+    }
+  }
+
+  function handleConfirmBet() {
+    if (phase !== "bet") return;
+    phase = "outcome";
+    clearBetTimer();
+
+    const opts = currentTrial.betOrder === "ascending" ? betAsc : betDesc;
+    const betPercent = opts[betIndex];
+    currentTrial.betPercent = betPercent;
+    currentTrial.betRT = now() - currentTrial.betStartTime;
+
+    const betAmount = Math.round(currentPoints * (betPercent / 100));
+    let text;
+    if (currentTrial.chosenColor === currentTrial.tokenColor) {
+      currentTrial.correct = 1;
+      currentTrial.wonLoss = betAmount;
+      currentPoints += betAmount;
+      text = "你猜对了！本轮赢得 " + betAmount + " 点。";
+    } else {
+      currentTrial.correct = 0;
+      currentTrial.wonLoss = -betAmount;
+      currentPoints -= betAmount;
+      text = "你猜错了。本轮失去 " + betAmount + " 点。";
+    }
+    currentTrial.pointsAfter = currentPoints;
+    updateStatusBar();
+
+    // 给圆形一个轻微的“弹一下”动画
+    betCircleDiv.classList.remove("pulse");
+    void betCircleDiv.offsetWidth; // 重新触发动画
+    betCircleDiv.classList.add("pulse");
+
+    messageDiv.textContent = text + " 小球实际在：" + (currentTrial.tokenColor === "red" ? "红色方块" : "蓝色方块") + " 下方。";
+    betButtonsDiv.style.display = "none";
+
+    saveCurrentTrialData();
+    setTimeout(nextTrial, 900);
+  }
+
+  function saveCurrentTrialData() {
+    const t = currentTrial;
+    dataRows.push({
+      globalTrial: t.globalTrial,
+      block: t.block,
+      trialInBlock: t.trialInBlock,
+      ratioRed: t.ratioRed,
+      ratioBlue: t.ratioBlue,
+      majorityColor: t.majorityColor,
+      betOrder: t.betOrder,
+      tokenColor: t.tokenColor,
+      chosenColor: t.chosenColor,
+      colorRT_ms: t.colorRT != null ? Math.round(t.colorRT) : "",
+      betPercent: t.betPercent,
+      betRT_ms: t.betRT != null ? Math.round(t.betRT) : "",
+      correct: t.correct,
+      wonLoss: t.wonLoss,
+      pointsAfter: t.pointsAfter
+    });
+  }
+
+  function endTask() {
+    phase = "finished";
+    colorButtonsDiv.style.display = "none";
+    betButtonsDiv.style.display = "none";
+    boxesDiv.innerHTML = "";
+    betCircleDiv.textContent = "";
+    messageDiv.textContent = "任务结束！最终点数为 " + currentPoints + "。可以点击下方按钮下载 CSV 数据。";
+    downloadBtn.style.display = "inline-block";
+  }
+
+  function exportCSV() {
+    if (dataRows.length === 0) return;
+    const header = [
+      "globalTrial","block","trialInBlock",
+      "ratioRed","ratioBlue","majorityColor",
+      "betOrder","tokenColor","chosenColor",
+      "colorRT_ms","betPercent","betRT_ms",
+      "correct","wonLoss","pointsAfter"
+    ];
+    const lines = [header.join(",")];
+    dataRows.forEach(row => {
+      const line = header.map(h => row[h]).join(",");
+      lines.push(line);
+    });
+    const csvContent = "\uFEFF" + lines.join("\n");
+    const blob = new Blob([csvContent], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "CGT_data.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  startBtn.addEventListener('click', () => {
+    startBtn.style.display = "none";
+    messageDiv.textContent = "任务即将开始，请专心完成。";
+    trials = generateTrials();
+    currentPoints = START_POINTS;
+    currentTrialIndex = -1;
+    dataRows = [];
+    setTimeout(nextTrial, 800);
+  });
+
+  chooseRedBtn.addEventListener('click', () => handleColorChoice("red"));
+  chooseBlueBtn.addEventListener('click', () => handleColorChoice("blue"));
+  confirmBetBtn.addEventListener('click', handleConfirmBet);
+  downloadBtn.addEventListener('click', exportCSV);
+
+  updateStatusBar();
+</script>
+</body>
+</html>
